@@ -1,19 +1,24 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+//#include <netinet/in.h>
+//#include <arpa/inet.h>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 #include <string.h>
 
 
 int main(int argc, char* argv[])
 {
+    addrinfo hints;
     addrinfo* results;
 
-    // guardamos los flags necesarios
+    memset(&hints, 0, sizeof(struct addrinfo));
+
+    // filtros
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
 
     // si no tenemos la entrada esperada, no podemos hacer nada
     if(argc < 2)
@@ -37,7 +42,6 @@ int main(int argc, char* argv[])
     while(info)
     {
         char host[NI_MAXHOST];
-        //char serv[NI_MAXSERV];
 
         getnameinfo(info->ai_addr, info->ai_addrlen, 
                     host, NI_MAXHOST, 

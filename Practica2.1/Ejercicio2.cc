@@ -1,13 +1,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -19,14 +15,13 @@ int main(int argc, char* argv[])
     memset(&hints, 0, sizeof(struct addrinfo));
 
     // guardamos los flags necesarios
-    hints.ai_flags = NI_NUMERICHOST;
     hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET;
 
     // si no tenemos la entrada esperada, no podemos hacer nada
-    if(argc <= 2)
+    if(argc != 3)
     {
-        std::cout << "Faltan argumentos.";
+        std::cout << "Los argumentos tienen que seguir el formato: programa host puerto\n";
         return -1;
     }
 
@@ -48,81 +43,75 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    bind(socketd, results->ai_addr, results->ai_addrlen);
-
+    if(bind(socketd, results->ai_addr, results->ai_addrlen))
+    {
+        std::cout << "Error al hacer el bind\n";
+        return -1;
+    }
+    freeaddrinfo(results);
 
     bool exit = false;
     while(!exit)
     {
+        socklen_t cliente_len = sizeof(struct sockaddr);
+        struct sockaddr cliente;
+
+        int sendBytes = 0;
+        time_t rawtime;
+        tm* t;
+
+        char sendBuffer[255];
+        char buffer[255];
         char host[NI_MAXHOST];
         char serv[NI_MAXSERV];
-        char buffer[80];
-        char sendBuffer[80];
 
-        struct sockaddr cliente;
-        socklen_t cliente_len = sizeof(struct sockaddr);
+        // para evitar errores
+        memset(&host, '\0', sizeof(char) * NI_MAXHOST);
+        memset(&serv, '\0', sizeof(char) * NI_MAXSERV);
+        memset(&buffer, '\0', sizeof(char) * 255);
+        memset(&sendBuffer, '\0', sizeof(char) * 255);
+
 
         //recibimos el mensaje y comprobamos que no haya errores
-        int bytes = recvfrom(socketd, buffer, 80, 0, 
+        int bytes = recvfrom(socketd, buffer, sizeof(char) * 254, 0, 
                             &cliente, &cliente_len);
-
         if(bytes == -1)
         {
+            std::cout << "Error al recibir datos\n";
             return -1;
         }
+
+        // cerramos el mensaje con \0 para evitar errores
+        buffer[bytes] = '\0';
 
         getnameinfo(&cliente, cliente_len, 
                     host, NI_MAXHOST, 
                     serv, NI_MAXSERV,
-                    NI_NUMERICHOST);
+                    NI_NUMERICHOST | NI_NUMERICSERV);
         
-        // escribimos la ip y el puerto del emisor
-        char ip[80];
-        inet_ntop(cliente.sa_family, &cliente, ip, cliente_len);
         
-        tm* t;
-        time_t rawtime = time(0);
+        std::cout << bytes << "bytes de " << host << ":" << serv << "\n";
+        
+        // enviamos la respuesta
+        rawtime = time(0);
         t = localtime(&rawtime);
-        // struct tm * timeinfo;
-        // char time_buffer [80];
-
-        // time (&rawtime);
-        // timeinfo = localtime (&rawtime);
-        int sendBytes = 0;
         if(bytes == 2)
         {
-
-            if(buffer[0] == 't')
-            {
-                std::cout << bytes << "bytes de " << ip << ":" << serv << "\n";
-                sendBytes = strftime(sendBuffer, 80, "%H:%M", t);
-            }
-            else if(buffer[0] == 'd')
-            {
-                std::cout << bytes << "bytes de " << ip << ":" << serv << "\n";
-                sendBytes = strftime(sendBuffer, 80, "%Y-%m-%d", t);
-            }
-            else if(buffer[0] == 'q')
-            {
-                std::cout << bytes << "bytes de " << ip << ":" << serv << "\n";
-                exit = true;
-            }
-            else
-            {
-                std::cout << "Comando no reconocido: " << buffer;
-            }
-            
+            if(buffer[0] == 'q') exit = true;
+            else if(buffer[0] == 't') sendBytes = strftime(sendBuffer, 80, "%H:%M", t);
+            else if(buffer[0] == 'd') sendBytes = strftime(sendBuffer, 80, "%Y-%m-%d", t);            
         }
         else
         {
-            std::cout << "Comando no reconocido: " << buffer;
+            std::cout << "Comando no reconocido: " << buffer << "\n";
         }
-        sendto(socketd, sendBuffer, sendBytes, 0, (sockaddr*) &cliente, cliente_len);
 
+        // enviamos la respuesta adecuada
+        if(sendBytes != 0)
+            sendto(socketd, sendBuffer, sendBytes, 0, &cliente, cliente_len);
     }
+    std::cout << "Saliendo...\n";
     close(socketd);
 
-
-    freeaddrinfo(results);
     return 0;
 }
