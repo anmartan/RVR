@@ -60,22 +60,29 @@ int main(int argc, char* argv[])
         std::cin >> buffer;
         buffer[254] = '\0'; // cortamos el mensaje si fuera necesario para evitar errores
         
-        if(buffer[0]=='Q' && buffer[1] =='\0')
+        if((buffer[0] == 'Q' || buffer [0] == 'q') && buffer[1] =='\0')
         {
             exit = true;
         }
         else
         {
+            // intentamos enviar el mensaje
             int message = send(socketd, buffer, strlen(buffer), 0);
             if(message == -1)
             {
                 std::cout << "Error al enviar el mensaje\n";
                 exit = true;
             }
-
-            int bytes = recv(socketd, &buffer, 254, 0);
-            buffer[bytes] = '\0';
-            std::cout << buffer << '\n';
+            // si hay errores, salimos del programa, no recibimos la respuesta
+            else
+            {
+                // recibimos la respuesta
+                int bytes = recv(socketd, &buffer, 254, 0);
+                
+                // cortamos el mensaje si es necesario para evitar errores
+                buffer[bytes] = '\0';       
+                std::cout << buffer << '\n';
+            }
         }
     }
     freeaddrinfo(results);
