@@ -8,6 +8,7 @@
 #include <thread>
 #include <pthread.h>
 
+int threadIndex = 0;
 class MyThread
 {
 public:
@@ -20,56 +21,25 @@ public:
     void receiveMessage()
     {
         bool exit = false;
+        char buffer[255];
+        memset(&buffer, '\0', sizeof(char) * 255);
         while(!exit)
         {
-            socklen_t cliente_len = sizeof(struct sockaddr);
-            struct sockaddr cliente;
-
-            int sendBytes = 0;
-            time_t rawtime;
-            tm* t;
-
-            char sendBuffer[255];
-            
             //recibimos el mensaje y comprobamos que no haya errores
-            int bytes = recvfrom(sockd, buffer, sizeof(char) * 254, 0, 
-                                &cliente, &cliente_len);
+            int bytes = recv(sockd, &buffer, 255, 0);
 
-            //si hay un error, terminamos el hilo
-            if(bytes == -1)
+            if(bytes < 1)
             {
-                std::cout << "Error al recibir datos\n";
-                break;
-            }
-
-            // cerramos el mensaje con \0 para evitar errores
-            buffer[bytes] = '\0';
-
-            getnameinfo(&cliente, cliente_len, 
-                        host, NI_MAXHOST, 
-                        serv, NI_MAXSERV,
-                        NI_NUMERICHOST | NI_NUMERICSERV);
-            
-            sleep(3);
-            std::cout << bytes << "bytes de " << host << ":" << serv << " tratados con el hilo " << std::this_thread::get_id() << "\n";
-            
-            // enviamos la respuesta
-            rawtime = time(0);
-            t = localtime(&rawtime);
-            if(bytes == 2)
-            {
-                if(buffer[0] == 't') sendBytes = strftime(sendBuffer, 80, "%H:%M", t);
-                else if(buffer[0] == 'd') sendBytes = strftime(sendBuffer, 80, "%Y-%m-%d", t);            
+                std::cout << "Conexion terminada\n";
+                exit = true;
             }
             else
             {
-                std::cout << "Comando no reconocido: " << buffer << "\n";
+                buffer[bytes] = '\0';
+                send(sockd, &buffer, bytes, 0);
             }
-
-            // enviamos la respuesta adecuada
-            if(sendBytes != 0)
-                sendto(sockd, sendBuffer, sendBytes, 0, &cliente, cliente_len);
         }
+        close(sockd);
     }
 private:
     int sockd;
@@ -87,7 +57,7 @@ int main(int argc, char* argv[])
     memset(&hints, 0, sizeof(struct addrinfo));
 
     // guardamos los flags necesarios
-    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_socktype = SOCK_STREAM;
     hints.ai_family = AF_INET;
 
     // si no tenemos la entrada esperada, no podemos hacer nada
@@ -122,31 +92,59 @@ int main(int argc, char* argv[])
     }
     freeaddrinfo(results);
 
+    //ponemos el socket a "escuchar" hasta que alguien se conecte
+    if(listen(socketd, 1))
+    {
+        std::cout << "Error al intentar poner el socket a \"escuchar\" posibles conexiones \n";
+        return -1;
+    }
+
+    socklen_t cliente_len = sizeof(struct sockaddr);
+    struct sockaddr cliente;
+
     // creamos los hilos
     int max_threads = 25;
     MyThread* mythreads[max_threads];
-
-    for(int i = 0; i < max_threads; i++)
+    while(true)
     {
-        mythreads[i] = new MyThread(socketd);
-    }
+        // se conecta un cliente
+        int idCliente = accept(socketd, &cliente, &cliente_len);
+        if(idCliente < 0)
+        {
+            std::cout << "Error al conectar el cliente con el servidor \n";
+            return -1;        
+        }
 
-    // pulsar q hace que se cierren todos los hilos
-    bool exit = false;
-    char buff;
-    while(!exit)
-    {
-        std::cin >> buff;
-        exit = (buff ==  'q' || buff == 'Q');
-    }
+        char host[NI_MAXHOST];
+        char serv[NI_MAXSERV];
 
-    std::cout << "Saliendo...\n";
-    close(socketd);
+        // para evitar errores
+        memset(&host, '\0', sizeof(char) * NI_MAXHOST);
+        memset(&serv, '\0', sizeof(char) * NI_MAXSERV);
+
+        if(getnameinfo(&cliente, cliente_len, 
+                    host, NI_MAXHOST, 
+                    serv, NI_MAXSERV,
+                    NI_NUMERICHOST | NI_NUMERICSERV))
+        {
+            std::cout << "Error al intentar obtener informacion del cliente\n";
+            return -1;    
+        }
+
+        // para que no haya infinitos clientes
+        if(threadIndex < max_threads)
+        {
+            std::cout << "Conexion desde " << host << "  " << serv << "\n";
+            mythreads[threadIndex] = new MyThread(idCliente);
+        }
+        
+    }
 
     // eliminamos la memoria creada
-    for(int i = 0; i < max_threads; i++)
+    for(int i = 0; i < threadIndex; i++)
     {
         delete mythreads[i]; mythreads[i] = nullptr;
     }
+
     return 0;
 }
