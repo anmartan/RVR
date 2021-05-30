@@ -2,6 +2,13 @@ Repositorio creado para las prácticas de la asignatura de Redes y Videojuegos e
 
 El repositorio tiene la siguiente estructura:
 
+<details markdown='1'><summary>Archivos adicionales</summary>
+
+* [Prediction](./Archivos_Adicionales/prediction/), con código base proporcionado por el profesor.
+
+* [xlibw](./Archivos_Adicionales/xlibw), con código y ejemplos proporcionados por el profesor.
+</details>
+
 <details markdown='1'><summary>Práctica 2.1</summary>
 
 * [x] [Ejercicio1.cc](./Practica2.1/Ejercicio1.cc), que obtiene todas las posibles direcciones con las que se podría crear un socket asociado a un host dado.
@@ -18,12 +25,10 @@ El repositorio tiene la siguiente estructura:
 </details>
 <details markdown='1'><summary>Práctica 2.2</summary>
 
-* [] [Ejercicio1.cc](.)
-* [] [Ejercicio2.cc](.)
-* [] [Ejercicio3.cc](.)
-* [] [Ejercicio4.cc](.)
-* [] [Ejercicio5.cc](.)
-* [] [Ejercicio6.cc](.)
-* [] [Ejercicio7.cc](.)
+* [x] [Serializacion](./Practica2.2/serializacion/), con el [ejercicio 1](./Practica2.2/serializacion/ejercicio1.cc), en el que leemos y escribimos en un archivo un objeto de tipo Jugador, que se recupera más tarde y se utiliza.
+* [x] [Replicacion-chat](./Practica2.2/replicacion-chat/), con el código base para la práctica. El desarrollo de los ejercicios se ha llevado a cabo en los archivos [Socket.cc](./Practica2.2/replicacion-chat/Socket.cc) y [Chat.cc](./Practica2.2/replicacion-chat/Chat.cc):
+    - Ejercicios 4 y 5, que implementa la clase Socket utilizada para enviar y recibir objetos serializables.
+    - Ejercicio 6, que implementa un servidor con un socket y una lista de clientes conectados.
+    - Ejercicio 7, que implementa un cliente que utiliza dos threads para enviar y recibir mensajes.
 
 </details>
