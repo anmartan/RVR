@@ -20,7 +20,7 @@ Socket::Socket(const char * address, const char * port):sd(-1)
     // rc guarda el codigo de error (si hay alguno)
     if(rc != 0)
     {
-        printf("Error: &s\n", gai_strerror(rc));
+        printf("Error: %s\n", gai_strerror(rc));
     }
     
     // intentamos crear el socket

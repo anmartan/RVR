@@ -68,14 +68,16 @@ void ChatServer::do_messages()
         // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
         switch (message.type)
         {
-        case ChatMessage::LOGIN:
+            int i;
+            bool found;
+        case ChatMessage::MessageType::LOGIN:
 
             // anadimos el cliente
             clients.push_back(std::move(cl));
             break;
-        case ChatMessage::LOGOUT:
-            int i = 0;
-            bool found = false;
+        case ChatMessage::MessageType::LOGOUT:
+            i = 0;
+            found = false;
 
             // buscamos el cliente
             while(i < clients.size() && !found)
@@ -90,7 +92,7 @@ void ChatServer::do_messages()
                 clients.erase(clients.begin() + i -1);
             }
             break;
-        case ChatMessage::MESSAGE:
+        case ChatMessage::MessageType::MESSAGE:
 
 
             for(int i = 0; i < clients.size(); i++)
